@@ -1,19 +1,23 @@
 #!/usr/bin/env python
 
-import gtk
 import os
 import sys
-import subprocess
 import time
 import signal
-import threading
 import urllib2
+import threading
+import subprocess
 import ConfigParser
-import vte
-from simpleconfig import SimpleConfig
+from gi import require_version
 
-#Initializing the gtk's thread engine
-gtk.gdk.threads_init()
+require_version("Gtk", "3.0")
+require_version("Vte", "2.91")
+
+from simpleconfig import SimpleConfig
+from gi.repository import Gtk, Gdk, GLib, GdkPixbuf, Pango, Vte
+
+#Initializing the Gtk's thread engine
+Gdk.threads_init()
 
 # Internationalization
 import locale
@@ -60,8 +64,8 @@ class SourceryConfig:
 			height = self.config.getint('Window', 'height')
 		except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
 			try:
-				w = gtk.gdk.get_default_root_window()
-				p = gtk.gdk.atom_intern('_NET_WORKAREA')
+				w = Gdk.get_default_root_window()
+				p = Gdk.atom_intern('_NET_WORKAREA')
 				workarea_width, workarea_height = w.property_get(p)[2][2:4]
 				width = int(workarea_width*0.8)
 				height = int(workarea_height*0.8)
@@ -89,11 +93,11 @@ class SourceryConfig:
 			pass
 
 class Icon:
-	avail = gtk.gdk.pixbuf_new_from_file(shareddir+'/pixmaps/pkg_action_available.png')
-	installed = gtk.gdk.pixbuf_new_from_file(shareddir+'/pixmaps/pkg_action_installed.png')
-	install = gtk.gdk.pixbuf_new_from_file(shareddir+'/pixmaps/pkg_action_install.png')
-	reinstall = gtk.gdk.pixbuf_new_from_file(shareddir+'/pixmaps/pkg_action_reinstall.png')
-	remove = gtk.gdk.pixbuf_new_from_file(shareddir+'/pixmaps/pkg_action_remove.png')
+	avail = GdkPixbuf.Pixbuf.new_from_file(shareddir+'/pixmaps/pkg_action_available.png')
+	installed = GdkPixbuf.Pixbuf.new_from_file(shareddir+'/pixmaps/pkg_action_installed.png')
+	install = GdkPixbuf.Pixbuf.new_from_file(shareddir+'/pixmaps/pkg_action_install.png')
+	reinstall = GdkPixbuf.Pixbuf.new_from_file(shareddir+'/pixmaps/pkg_action_reinstall.png')
+	remove = GdkPixbuf.Pixbuf.new_from_file(shareddir+'/pixmaps/pkg_action_remove.png')
 
 class PkgAction:
 	DoNothing = 0
@@ -177,7 +181,7 @@ class Sourcery:
 
 	@threaded
 	def refresh_pkglist(self):
-		gtk.gdk.threads_enter()
+		Gdk.threads_enter()
 		self.ls_pkg.clear()
 		# The list is cleared, no item is selected, so all menu
 		# options for package actions should be disabled
@@ -187,7 +191,7 @@ class Sourcery:
 		self.mi_remove.set_sensitive(False)
 		self.mi_setoptions.set_sensitive(False)
 		self.mi_getinfo.set_sensitive(False)
-		gtk.gdk.threads_leave()
+		Gdk.threads_leave()
 		cmdstatus, pkglist = self.slaptsrclist(self.entry_search.get_text())
 		if cmdstatus == 0:
 			pkg_installed = self.pkg_installed()
@@ -213,15 +217,15 @@ class Sourcery:
 				elif [pkgname, pkgver, PkgAction.Remove] in self.pending:
 					icon = Icon.remove
 					installed = True
-				gtk.gdk.threads_enter()
+				Gdk.threads_enter()
 				self.ls_pkg.append([icon, pkgname,
 					pkgver, pkgdesc,
 					installed, action])
-				gtk.gdk.threads_leave()
+				Gdk.threads_leave()
 		else:
-			gtk.gdk.threads_enter()
+			Gdk.threads_enter()
 			self.dlg_updateerror.show()
-			gtk.gdk_threads_leave()
+			Gdk_threads_leave()
 
 	def get_pkgver(self, pkg):
 		f = open(slackbuilds_data)
@@ -293,8 +297,8 @@ class Sourcery:
 		
 		self.pb_fetchpkginfo.set_fraction(0)
 		self.dlg_fetchpkginfo.show()
-		while gtk.events_pending():
-			gtk.main_iteration()
+		while Gtk.events_pending():
+			Gtk.main_iteration()
 		data = ''
 		f = open(slackbuilds_data)
 		done = False
@@ -310,8 +314,8 @@ class Sourcery:
 					done = True
 		f.close()
 		self.pb_fetchpkginfo.set_fraction(0.1)
-		while gtk.events_pending():
-			gtk.main_iteration()
+		while Gtk.events_pending():
+			Gtk.main_iteration()
 		# I don't see a way status can be anything other than 0
 		# here. pkg and pkgver will always be correct since they
 		# are passed from the gui
@@ -326,8 +330,8 @@ class Sourcery:
 			elif 'SLACKBUILD REQUIRES: ' in i:
 				deps = i.partition('REQUIRES: ')[2].replace(',',' ').rsplit(' ')
 		self.pb_fetchpkginfo.set_fraction(0.2)
-		while gtk.events_pending():
-			gtk.main_iteration()
+		while Gtk.events_pending():
+			Gtk.main_iteration()
 		if 'slack-desc' in files:
 			try:
 				f = urllib2.urlopen(sourceurl+location+'slack-desc')
@@ -341,8 +345,8 @@ class Sourcery:
 		else:
 			slackdesc = None
 		self.pb_fetchpkginfo.set_fraction(0.6)
-		while gtk.events_pending():
-			gtk.main_iteration()
+		while Gtk.events_pending():
+			Gtk.main_iteration()
 		if 'README' in files:
 			try:
 				f = urllib2.urlopen(sourceurl+location+'README')
@@ -375,8 +379,8 @@ class Sourcery:
 			except UnicodeDecodeError:
 				self.txt_pkginfo_readme.set_text("\n".join(readme).decode('latin1'))
 		self.dlg_pkginfo.show()
-		while gtk.events_pending():
-			gtk.main_iteration()
+		while Gtk.events_pending():
+			Gtk.main_iteration()
 
 	def on_toolbutton_update_clicked(self, widget):
 		self.canceltask = False
@@ -384,8 +388,8 @@ class Sourcery:
 		self.pb_cacheupdate.pulse()
 		process = subprocess.Popen(['slapt-src','-u'], shell=False, close_fds=True, preexec_fn=os.setsid)
 		while not self.canceltask:
-			while gtk.events_pending():
-				gtk.main_iteration()
+			while Gtk.events_pending():
+				Gtk.main_iteration()
 			self.pb_cacheupdate.pulse()
 			status = process.poll()
 			time.sleep(0.1)
@@ -402,9 +406,9 @@ class Sourcery:
 
 	@threaded
 	def on_toolbutton_exec_clicked(self, widget):
-		gtk.gdk.threads_enter()
+		Gdk.threads_enter()
 		self.dlg_wait.show()
-		gtk.gdk.threads_leave()
+		Gdk.threads_leave()
 		config = SourceryConfig()
 		error = False
 		self.ls_summary.clear()
@@ -437,14 +441,14 @@ class Sourcery:
 			elif i[2] == PkgAction.Remove:
 				desc = _('%(pkg)s %(pkgver)s is going to be removed') %{'pkg' : i[0], 'pkgver' : i[1]}
 			self.ls_summary.append([desc, i[0], i[1], i[2]])
-		gtk.gdk.threads_enter()
+		Gdk.threads_enter()
 		self.dlg_wait.hide()
 		if error:
 			self.lb_depmissing.set_text(_('%(d)s appears to be a missing dependency and it is not available as a SlackBuild. Install it with GSlapt and try again. If you cannot find a package in GSlapt, you might have to disable dependencies or do some manual tweaking.') %{'d': deps})
 			self.dlg_depmissing.show()
 		else:
 			self.dlg_summary.show()
-		gtk.gdk.threads_leave()
+		Gdk.threads_leave()
 	
 	def on_toolbutton_clearsearch_clicked(self, widget):
 		if len(self.entry_search.get_text()) != 0:
@@ -458,8 +462,8 @@ class Sourcery:
 		if icon.value_name == 'GTK_ENTRY_ICON_PRIMARY':
 			if len(self.entry_search.get_text()) != 0:
 				self.entry_search.set_text('')
-				while gtk.events_pending():
-					gtk.main_iteration()
+				while Gtk.events_pending():
+					Gtk.main_iteration()
 		self.refresh_pkglist()
 
 	def on_button_setoptions_ok_clicked(self, widget):
@@ -496,6 +500,9 @@ class Sourcery:
 	def update_menus(self):
 		selectedline = self.tv_pkg.get_selection()
 		self.ls_pkg, iter = selectedline.get_selected()
+		# For some reason last "iter" is None with Gtk3
+		if not iter:
+			return
 		pkg = self.ls_pkg.get_value(iter, 1)
 		ver = self.ls_pkg.get_value(iter, 2)
 		installed = self.ls_pkg.get_value(iter, 4)
@@ -588,14 +595,14 @@ class Sourcery:
 			self.tv_pkg.grab_focus()
 			self.tv_pkg.set_cursor(path, col, 0)
 			if col.get_title() == _('Status') or event.button == 3:
-				self.menu_pkgaction.popup(None, None, None, event.button, time)
+				self.menu_pkgaction.popup(None, None, None, None, event.button, time)
 		return True
 	
 	def on_treeview_pkg_cursor_changed(self, widget):
 		self.update_menus()
 
 	def on_treeview_pkg_key_release_event(self, widget, event):
-		button = gtk.gdk.keyval_name(event.keyval) 
+		button = Gdk.keyval_name(event.keyval)
 		if button == 'Menu':
 			self.menu_pkgaction.popup(None, None, None, 1, event.time)
 
@@ -747,17 +754,19 @@ class Sourcery:
 		process = subprocess.Popen(args, stdout = f, stderr = f,
 				shell=False, close_fds=True,
 				preexec_fn=os.setsid, env=env)
-		self.vte_term.feed_child('clear\ntail --pid '+str(process.pid)+' -f '+logfile+' 2>/dev/null & clear\n')
+		cmd = 'clear\ntail --pid '+str(process.pid)+' -f '+logfile+' 2>/dev/null & clear\n'
+		cmd_clear = 'clear\n'
+		self.Vte_term.feed_child(cmd, len(cmd) + 1)
 		while not self.canceltask:
-			while gtk.events_pending():
-				gtk.main_iteration()
+			while Gtk.events_pending():
+				Gtk.main_iteration()
 			self.pb_exec.pulse()
 			status = process.poll()
 			time.sleep(0.1)
 			if status != None:
 				break
 		f.close()
-		self.vte_term.feed_child('clear\n')
+		self.Vte_term.feed_child(cmd_clear, len(cmd_clear) + 1)
 		if status == None:
 			os.killpg(process.pid, signal.SIGKILL)
 		if self.canceltask:
@@ -799,10 +808,13 @@ class Sourcery:
 				stdout = f, stderr = f, shell=False,
 				close_fds=True, preexec_fn=os.setsid,
 				env=env)
-		self.vte_term.feed_child('clear\ntail --pid '+str(process.pid)+' -f '+logfile+' 2>/dev/null & clear\n')
+		cmd_clear = 'clear\n'
+		self.Vte_term.feed_child(cmd_clear, len(cmd_clear) + 1)
+		cmd = 'clear\ntail --pid '+str(process.pid)+' -f '+logfile+' 2>/dev/null & clear\n'
+		self.Vte_term.feed_child(cmd, len(cmd) + 1)
 		while not self.canceltask:
-			while gtk.events_pending():
-				gtk.main_iteration()
+			while Gtk.events_pending():
+				Gtk.main_iteration()
 			self.pb_exec.pulse()
 			status = process.poll()
 			time.sleep(0.1)
@@ -810,7 +822,7 @@ class Sourcery:
 				break
 		f.close()
 		DEVNULL.close()
-		self.vte_term.feed_child('clear\n')
+		self.Vte_term.feed_child(cmd_clear, len(cmd_clear) + 1)
 		pyes.stdout.close()
 		if status == None:
 			os.killpg(process.pid, signal.SIGKILL)
@@ -835,17 +847,19 @@ class Sourcery:
 		f = open(logfile, 'w')
 		args = ['slapt-get', '-y', '--remove', '--no-dep', pkg]
 		process = subprocess.Popen(args, stdout = f, stderr = f, shell=False, close_fds=True, preexec_fn=os.setsid)
-		self.vte_term.feed_child('clear\ntail --pid '+str(process.pid)+' -f '+logfile+' 2>/dev/null & clear\n')
+		cmd = 'clear\ntail --pid '+str(process.pid)+' -f '+logfile+' 2>/dev/null & clear\n'
+		cmd_clear = 'clear\n'
+		self.Vte_term.feed_child(cmd, len(cmd) + 1)
 		while True:
-			while gtk.events_pending():
-				gtk.main_iteration()
+			while Gtk.events_pending():
+				Gtk.main_iteration()
 			self.pb_exec.pulse()
 			status = process.poll()
 			time.sleep(0.1)
 			if status != None:
 				break
 		f.close()
-		self.vte_term.feed_child('clear\n')
+		self.Vte_term.feed_child(cmd_clear, len(cmd_clear) + 1)
 		try:
 			os.remove(logfile)
 		except OSError:
@@ -856,8 +870,8 @@ class Sourcery:
 			return 0
 
 	def execute_pending(self):
-		while gtk.events_pending():
-			gtk.main_iteration()
+		while Gtk.events_pending():
+			Gtk.main_iteration()
 		totaltasks = len(self.ls_summary)
 		currentpos = 0
 		step = 1/float(totaltasks*2)
@@ -890,8 +904,8 @@ class Sourcery:
 				break
 			currentpos = currentpos + step
 			self.pb_execoverall.set_fraction(currentpos)
-		while gtk.events_pending():
-			gtk.main_iteration()
+		while Gtk.events_pending():
+			Gtk.main_iteration()
 		self.pending = []
 		self.ls_summary.clear()
 		self.dlg_exec.hide()
@@ -1032,7 +1046,7 @@ class Sourcery:
 		self.dlg_loglist.hide()
 
 	def on_treeview_loglist_key_release_event(self, widget, event):
-		button = gtk.gdk.keyval_name(event.keyval)
+		button = Gdk.keyval_name(event.keyval)
 		if button == 'Return':
 			self.on_button_loglist_view_clicked(self)
 		elif button == 'Delete':
@@ -1161,14 +1175,14 @@ class Sourcery:
 	def on_button_clear_cache_clicked(self, widget):
 		self.canceltask = False
 		self.dlg_clear_cache.show()
-		while gtk.events_pending():
-			gtk.main_iteration()
+		while Gtk.events_pending():
+			Gtk.main_iteration()
 		time.sleep(0.5)	
 		process = subprocess.Popen(['slapt-src','--clean'], shell=False, close_fds=True, preexec_fn=os.setsid)
 		while not self.canceltask:
 			self.pb_clear_cache.pulse()
-			while gtk.events_pending():
-				gtk.main_iteration()
+			while Gtk.events_pending():
+				Gtk.main_iteration()
 			status = process.poll()
 			time.sleep(0.1)
 			if status != None:
@@ -1203,10 +1217,10 @@ class Sourcery:
 		config = SourceryConfig()
 		deps = config.deps()
 		config.write_config(deps, self.win_width, self.win_height)
-		gtk.main_quit()
+		Gtk.main_quit()
 
 	def __init__(self):
-		builder = gtk.Builder()
+		builder = Gtk.Builder()
 		builder.set_translation_domain("sourcery")
 		if os.path.exists('sourcery.ui'):
 			builder.add_from_file('sourcery.ui')
@@ -1296,14 +1310,16 @@ class Sourcery:
 		self.tv_exec = builder.get_object('treeview_exec')
 		self.pb_execoverall = builder.get_object('progressbar_execoverall')
 		self.dlg_exec_vbox = builder.get_object('dialog_exec_vbox')
-		self.vte_term = vte.Terminal()
-		self.dlg_exec_vbox.add(self.vte_term)
-		self.vte_term.fork_command('bash')
-		self.vte_term.feed_child('unset PS1\nclear\n')
-		self.vte_term.set_sensitive(False)
-		self.vte_term.set_size(80, 20)
-		self.vte_term.set_font_from_string('Terminus')
-		self.vte_term.show()
+		self.Vte_term = Vte.Terminal()
+		self.dlg_exec_vbox.add(self.Vte_term)
+		self.Vte_term.spawn_sync(Vte.PtyFlags.DEFAULT, os.environ['HOME'], ["/bin/bash"], [], GLib.SpawnFlags.DO_NOT_REAP_CHILD, None, None )
+		cmd = 'unset PS1\nclear\n'
+		self.Vte_term.feed_child(cmd, len(cmd) + 1)
+		self.Vte_term.set_sensitive(False)
+		self.Vte_term.set_size(80, 20)
+		term_font = Pango.FontDescription("Terminus")
+		self.Vte_term.set_font(term_font)
+		self.Vte_term.show()
 
 		#
 		# Set options dialog
@@ -1386,7 +1402,7 @@ class Sourcery:
 		#
 		self.dlg_loglist = builder.get_object('dialog_loglist')
 		self.ls_loglist = builder.get_object('liststore_loglist')
-		self.ls_loglist.set_sort_column_id(0, gtk.SORT_ASCENDING)
+		self.ls_loglist.set_sort_column_id(0, Gtk.SortType.ASCENDING)
 		self.tv_loglist = builder.get_object('treeview_loglist')
 		self.tvc_loglist_name = builder.get_object('treeviewcolumn_loglist_name')
 		self.tvc_loglist_ver = builder.get_object('treeviewcolumn_loglist_ver')
@@ -1475,4 +1491,4 @@ class Sourcery:
 
 if __name__ == "__main__":
 	app = Sourcery()
-	gtk.main()
+	Gtk.main()

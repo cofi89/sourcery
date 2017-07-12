@@ -980,7 +980,6 @@ Public License instead of this License.  But first, please read
               <object class="GtkProgressBar" id="progressbar_cacheupdate">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="activity_mode">True</property>
               </object>
               <packing>
                 <property name="expand">True</property>
@@ -1070,7 +1069,6 @@ Public License instead of this License.  But first, please read
               <object class="GtkProgressBar" id="progressbar_clear_cache">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="activity_mode">True</property>
               </object>
               <packing>
                 <property name="expand">False</property>
